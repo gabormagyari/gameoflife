@@ -9,11 +9,14 @@
             var c = document.getElementById("glcanvas");
             var ctx = c.getContext("2d");
 
-            const fieldSize = 10;
+            const fieldSize = 50;
             const fieldWidth = c.width / fieldSize;
             const fieldHeight = c.height / fieldSize;
 
-            var gameField = setupGameField(fieldSize);
+            let isRunning = false;
+            let runningInterval;
+
+            var gameField = setupGameField(fieldSize, false);
 
             render();
 
@@ -22,23 +25,106 @@
                 let x = Math.floor(e.offsetX / fieldWidth);
                 let y = Math.floor(e.offsetY / fieldHeight);
 
-                gameField[y][x] = 1;
+                gameField[y][x].alive = !gameField[y][x].alive;
                 render();
 
             }, false);
 
-            function setupGameField(fieldSize){
+            document.getElementById('step').addEventListener('click', () => {
+                update();
+                render();
+            });
+
+            document.getElementById('start').addEventListener('click', (event) => {
+                if (isRunning) {
+                    clearInterval(runningInterval);
+                    isRunning = false;
+                } else {
+                    let speed = document.getElementById('speed').value;
+                    runningInterval = window.setInterval(() => {
+                        update();
+                        render();
+                    }, speed);
+                    isRunning = true;
+                }
+            });
+
+            document.getElementById('random').addEventListener('click', () => {
+                gameField = setupGameField(fieldSize, true);
+                render();
+            });
+
+            function setupGameField(fieldSize, random){
                 let field = new Array(fieldSize);
                 for (let i = 0; i < fieldSize; i++){
                     field[i] = new Array(fieldSize);
                     for (let j = 0; j < fieldSize; j++){
-                        field[i][j] = 0;
+                        field[i][j] = {alive: random ? Math.random() > 0.5 : false};
                     }
                 }
                 return field;
             }
 
+            function update() {
+
+                var tempArray = setupGameField(fieldSize);
+                tempArray.forEach((row, rowIndex) => {
+                    row.forEach((field, fieldIndex) => {
+                        let neighborCount = getNeighborCount(rowIndex, fieldIndex, gameField);
+                        if (gameField[rowIndex][fieldIndex].alive && (neighborCount < 2 || neighborCount > 3)) {
+                            field.alive = false;
+                        } else if (!gameField[rowIndex][fieldIndex].alive && neighborCount === 3) {
+                            field.alive = true;
+                        } else {
+                            field.alive = gameField[rowIndex][fieldIndex].alive;
+                        }
+                    });
+                });
+                tempArray.forEach((row, rowIndex) => {
+                    row.forEach((field, fieldIndex) => {
+                        gameField[rowIndex][fieldIndex].alive = field.alive;
+                    });
+                });
+            }
+
+            function getNeighborCount(rowIndex, fieldIndex, gameField) {
+
+                return isAlive(gameField[decrement(rowIndex, fieldSize)][fieldIndex]) +
+                    isAlive(gameField[increment(rowIndex, fieldSize)][fieldIndex]) +
+                    isAlive(gameField[rowIndex][increment(fieldIndex, fieldSize)]) +
+                    isAlive(gameField[rowIndex][decrement(fieldIndex, fieldSize)]) +
+                    isAlive(gameField[decrement(rowIndex, fieldSize)][increment(fieldIndex, fieldSize)]) +
+                    isAlive(gameField[increment(rowIndex, fieldSize)][decrement(fieldIndex, fieldSize)]) +
+                    isAlive(gameField[decrement(rowIndex, fieldSize)][decrement(fieldIndex, fieldSize)]) +
+                    isAlive(gameField[increment(rowIndex, fieldSize)][increment(fieldIndex, fieldSize)]);
+
+                function increment(index, fieldSize) {
+                    let newIndex;
+                    if ((index + 1) === fieldSize) {
+                        newIndex = 0;
+                    } else {
+                        newIndex = index + 1;
+                    }
+                    return newIndex;
+                }
+
+                function decrement(index, fieldSize) {
+                    let newIndex;
+                    if (index === 0) {
+                        newIndex = fieldSize - 1;
+                    } else {
+                        newIndex = index - 1;
+                    }
+                    return newIndex;
+                }
+
+                function isAlive(field){
+                    return field.alive ? 1 : 0;
+                }
+            }
+
             function render(){
+                ctx.clearRect(0, 0, c.width, c.height);
                 gameField.forEach((row, rowIndex) => {
                     row.forEach((field, fieldIndex) => {
                         ctx.beginPath();
@@ -47,7 +133,7 @@
                             rowIndex * fieldHeight,
                             fieldWidth,
                             fieldHeight);
-                        field ? ctx.fill() : ctx.stroke();
+                        field.alive ? ctx.fill() : ctx.stroke();
                     });
                 });
             }
@@ -61,8 +147,9 @@
     </canvas>
 
     <div>
+        <button id="random">random</button>
         <button id="step">step</button>
-        <button id="start">start</button>
+        <button id="start">start/stop</button>
         <label>Speed: </label><input type="text" id="speed" value="500">
     </div>
 
