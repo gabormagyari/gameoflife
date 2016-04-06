@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Title</title>
+    <script type="application/javascript">
+        function start() {
+
+            var c = document.getElementById("glcanvas");
+            var ctx = c.getContext("2d");
+
+            const fieldSize = 10;
+            const fieldWidth = c.width / fieldSize;
+            const fieldHeight = c.height / fieldSize;
+
+            var gameField = setupGameField(fieldSize);
+
+            render();
+
+            c.addEventListener('click', function(e) {
+
+                let x = Math.floor(e.offsetX / fieldWidth);
+                let y = Math.floor(e.offsetY / fieldHeight);
+
+                gameField[y][x] = 1;
+                render();
+
+            }, false);
+
+            function setupGameField(fieldSize){
+                let field = new Array(fieldSize);
+                for (let i = 0; i < fieldSize; i++){
+                    field[i] = new Array(fieldSize);
+                    for (let j = 0; j < fieldSize; j++){
+                        field[i][j] = 0;
+                    }
+                }
+                return field;
+            }
+
+            function render(){
+                gameField.forEach((row, rowIndex) => {
+                    row.forEach((field, fieldIndex) => {
+                        ctx.beginPath();
+                        ctx.rect(
+                            fieldIndex * fieldWidth,
+                            rowIndex * fieldHeight,
+                            fieldWidth,
+                            fieldHeight);
+                        field ? ctx.fill() : ctx.stroke();
+                    });
+                });
+            }
+        }
+    </script>
+</head>
+<body onload="start()">
+    <canvas id="glcanvas" width="640" height="480">
+        Your browser doesn't appear to support the
+        <code>&lt;canvas&gt;</code> element.
+    </canvas>
+
+    <div>
+        <button id="step">step</button>
+        <button id="start">start</button>
+        <label>Speed: </label><input type="text" id="speed" value="500">
+    </div>
+
+</body>
+</html>
